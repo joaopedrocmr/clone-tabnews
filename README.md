@@ -1,3 +1,3 @@
 # clone-tabnews
 
-Implementando um clone do tabnews e aprendendo mais!
+Implementando um projeto baseado no tabnews incluindo infraestrutura, testes automatizados, autenticação...
