@@ -38,6 +38,26 @@ export class ServiceError extends Error {
   }
 }
 
+export class ValidationError extends Error {
+  constructor({ cause, message, action }) {
+    super(message || "Validation error occurred", {
+      cause,
+    });
+    this.name = "ValidationError";
+    this.action = action || "The provided data is invalid.";
+    this.statusCode = 400;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      action: this.action,
+      status: this.statusCode,
+    };
+  }
+}
+
 export class MethodNotAllowedError extends Error {
   constructor({ cause }) {
     super("An unexpected error has occurred", {
