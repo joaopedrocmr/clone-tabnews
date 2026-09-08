@@ -58,6 +58,26 @@ export class ValidationError extends Error {
   }
 }
 
+export class NotFoundError extends Error {
+  constructor({ cause, message, action }) {
+    super(message || "Not found error occurred", {
+      cause,
+    });
+    this.name = "NotFoundError";
+    this.action = action || "The provided data is invalid.";
+    this.statusCode = 404;
+  }
+
+  toJSON() {
+    return {
+      name: this.name,
+      message: this.message,
+      action: this.action,
+      statusCode: this.statusCode,
+    };
+  }
+}
+
 export class MethodNotAllowedError extends Error {
   constructor({ cause }) {
     super("An unexpected error has occurred", {
