@@ -1,5 +1,6 @@
 import database from "infra/database";
 import { ValidationError, NotFoundError } from "infra/errors.js";
+import password from "models/password.js";
 
 async function findOneByUsername(username) {
   const userFound = await runSelectQuery(username);
@@ -35,49 +36,10 @@ async function findOneByUsername(username) {
 async function create(userInputValues) {
   await validateuniqueUsername(userInputValues.username);
   await validateuniqueEmail(userInputValues.email);
+  await hashPasswordInObject(userInputValues);
+
   const newUser = await runInsertQuery(userInputValues);
   return newUser;
-
-  async function validateuniqueEmail(email) {
-    const result = await database.query({
-      text: `
-          SELECT 
-            email
-          FROM 
-            users
-          WHERE 
-            LOWER(email) = LOWER($1)
-          ;`,
-      values: [email],
-    });
-
-    if (result.rowCount > 0) {
-      throw new ValidationError({
-        message: "Email already exists",
-        action: "Please use a different email address",
-      });
-    }
-  }
-  async function validateuniqueUsername(username) {
-    const result = await database.query({
-      text: `
-          SELECT 
-            username
-          FROM 
-            users
-          WHERE 
-            LOWER(username) = LOWER($1)
-          ;`,
-      values: [username],
-    });
-
-    if (result.rowCount > 0) {
-      throw new ValidationError({
-        message: "Username already exists",
-        action: "Please use a different username",
-      });
-    }
-  }
 
   async function runInsertQuery(userInputValues) {
     const result = await database.query({
@@ -98,9 +60,102 @@ async function create(userInputValues) {
     return result.rows[0];
   }
 }
+async function update(username, userInputValues) {
+  const currentUser = await findOneByUsername(username);
+
+  if (userInputValues.username) {
+    await validateuniqueUsername(userInputValues.username);
+  }
+  if (userInputValues.email) {
+    await validateuniqueEmail(userInputValues.email);
+  }
+  if (userInputValues.password) {
+    await hashPasswordInObject(userInputValues);
+  }
+
+  const userWithNewValues = {
+    ...currentUser,
+    ...userInputValues,
+  };
+
+  const updatedUser = await runUpdateQuery(userWithNewValues);
+  return updatedUser;
+
+  async function runUpdateQuery(userWithNewValues) {
+    const result = await database.query({
+      text: `
+          UPDATE 
+            users
+          SET 
+            username = $2,
+            email = $3,
+            password = $4,
+            updated_at = timezone('utc', now())
+          WHERE 
+            id = $1
+          RETURNING 
+            *
+          ;`,
+      values: [
+        userWithNewValues.id,
+        userWithNewValues.username,
+        userWithNewValues.email,
+        userWithNewValues.password,
+      ],
+    });
+
+    return result.rows[0];
+  }
+}
+
+async function validateuniqueUsername(username) {
+  const result = await database.query({
+    text: `
+          SELECT 
+            username
+          FROM 
+            users
+          WHERE 
+            LOWER(username) = LOWER($1)
+          ;`,
+    values: [username],
+  });
+
+  if (result.rowCount > 0) {
+    throw new ValidationError({
+      message: "Username already exists",
+      action: "Please use a different username",
+    });
+  }
+}
+async function validateuniqueEmail(email) {
+  const result = await database.query({
+    text: `
+          SELECT 
+            email
+          FROM 
+            users
+          WHERE 
+            LOWER(email) = LOWER($1)
+          ;`,
+    values: [email],
+  });
+
+  if (result.rowCount > 0) {
+    throw new ValidationError({
+      message: "Email already exists",
+      action: "Please use a different email address",
+    });
+  }
+}
+async function hashPasswordInObject(userInputValues) {
+  const hashedPassword = await password.hash(userInputValues.password);
+  userInputValues.password = hashedPassword;
+}
 const user = {
   create,
   findOneByUsername,
+  update,
 };
 
 export default user;
