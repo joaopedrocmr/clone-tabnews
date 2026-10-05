@@ -31,32 +31,13 @@ describe("PATCH /api/v1/users/[username]", () => {
       });
     });
     test("duplicate 'username'", async () => {
-      const user1 = await fetch("http://localhost:3000/api/v1/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "user1",
-          email: "user1@curso.dev",
-          password: "senha123",
-        }),
+      await orchestrator.createUser({
+        username: "user1",
       });
 
-      expect(user1.status).toBe(201);
-      const user2 = await fetch("http://localhost:3000/api/v1/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "user2",
-          email: "user2@curso.dev",
-          password: "senha123",
-        }),
+      await orchestrator.createUser({
+        username: "user2",
       });
-
-      expect(user2.status).toBe(201);
 
       const response = await fetch("http://localhost:3000/api/v1/users/user2", {
         method: "PATCH",
@@ -79,36 +60,16 @@ describe("PATCH /api/v1/users/[username]", () => {
       });
     });
     test("duplicate 'email'", async () => {
-      const user1 = await fetch("http://localhost:3000/api/v1/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "username1",
-          email: "username1@curso.dev",
-          password: "senha123",
-        }),
+      await orchestrator.createUser({
+        email: "username1@curso.dev",
       });
 
-      expect(user1.status).toBe(201);
-
-      const user2 = await fetch("http://localhost:3000/api/v1/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "username2",
-          email: "username2@curso.dev",
-          password: "senha123",
-        }),
+      const createdUser2 = await orchestrator.createUser({
+        email: "username2@curso.dev",
       });
-
-      expect(user2.status).toBe(201);
 
       const response = await fetch(
-        "http://localhost:3000/api/v1/users/username2",
+        `http://localhost:3000/api/v1/users/${createdUser2.username}`,
         {
           method: "PATCH",
           headers: {
